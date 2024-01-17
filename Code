@@ -1,0 +1,51 @@
+from pydub import AudioSegment
+import speech_recognition as sr
+
+def convert_to_wav(filename):
+    # Load the audio file
+    sound = AudioSegment.from_file(filename)
+
+    # Set the sample rate to 16000
+    sound = sound.set_frame_rate(16000)
+
+    # Set the number of channels to 1
+    sound = sound.set_channels(1)
+
+    # Set the sample width to 2 bytes
+    sound = sound.set_sample_width(2)
+
+    # Export the audio file as a WAV file
+    wav_file = filename.split(".")[0] + ".wav"
+    sound.export(wav_file, format="wav")
+
+    return wav_file
+
+def transcribe_audio(filename):
+    # Convert the audio file to WAV format
+    wav_file = convert_to_wav(filename)
+
+    # Create a recognizer object
+    r = sr.Recognizer()
+
+    # Load the audio file
+    with sr.AudioFile(wav_file) as source:
+        audio = r.record(source)
+        # Adjust for ambient noise
+        r.adjust_for_ambient_noise(source, duration=0.5)
+
+    # Transcribe the speech in the audio file
+    try:
+        result = r.recognize_google(audio, show_all=True)
+        if 'alternative' in result:
+            for i, alternative in enumerate(result['alternative']):
+                if 'confidence' in alternative:
+                    confidence = alternative['confidence']
+                    transcript = alternative['transcript']
+                    print(f"Alternative {i+1}: {transcript} (confidence: {confidence})")
+                else:
+                    transcript = alternative['transcript']
+                    print(f"Alternative {i+1}: {transcript}")
+    except sr.UnknownValueError:
+        print("Google Speech Recognition could not understand audio")
+    except sr.RequestError as e:
+        print(f"Could not request results from Google Speech Recognition service; {e}")
